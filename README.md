@@ -24,8 +24,8 @@ To run this server locally, you need:
 1. **Python 3.8+**  
 2. **Ollama**: The server relies on a local instance of Ollama to run the LLM.  
    * [Download Ollama](https://ollama.com/)  
-   * Pull the required model (default is qwen3:4b in the code):  
-     ollama pull qwen3:4b
+   * Pull the required model (default is qwen2.5:3b in the code):  
+     ollama pull qwen2.5:3b
 
 ## **Installation**
 
@@ -51,7 +51,7 @@ To run this server locally, you need:
 1. **Start Ollama:**  
    Ensure your Ollama instance is running and accessible at <http://localhost:11434>.  
 2. **Start the Flask Server:**  
-   python app.py
+  python server.py
 
    The server will start on <http://localhost:5000>.  
 3. **Access the Interface:**  
@@ -100,8 +100,8 @@ To run this server locally, you need:
 ## **Configuration**
 
 * **Data Storage:** User data and sessions are stored in data.json.  
-* **Model Config:** The model is hardcoded to qwen3:4b in app.py. To change this, edit the chat() function in app.py.  
-* **System Prompt:** The defensive instructions are defined in the SYSTEM\_PROMPT variable in app.py.
+* **Model Config:** The model is hardcoded to qwen2.5:3b in server.py. To change this, edit the chat() function in server.py.  
+* **System Prompt:** The defensive instructions are defined in the SYSTEM\_PROMPT variable in server.py.
 
 ## **Disclaimer**
 

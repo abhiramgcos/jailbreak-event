@@ -239,6 +239,14 @@
         .btn-logout:hover { border-color: var(--accent); color: var(--accent); }
         .btn-history:hover { border-color: var(--cyan); color: var(--cyan); }
 
+        .global-logout {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            display: none;
+        }
+
         /* ─── Stats ─── */
         .stats-bar {
             display: flex;
@@ -805,6 +813,8 @@
         </div>
     </div>
 
+    <button class="btn-logout global-logout" id="globalLogout" onclick="logout()">Logout</button>
+
     <!-- Main UI -->
     <div class="container">
         <div class="header">
@@ -834,7 +844,7 @@
         <div class="chat-container">
             <div class="chat-header">
                 <div class="dot"></div>
-                <span>SECURE AI TERMINAL — qwen3:4b</span>
+                <span>SECURE AI TERMINAL — qwen2.5:3b</span>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="welcome-msg">
@@ -934,6 +944,7 @@
         async function showLoggedIn() {
             document.getElementById('authOverlay').classList.add('hidden');
             document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('globalLogout').style.display = 'inline-flex';
             document.getElementById('userBadge').textContent = `@${currentUser}`;
 
             // Check for active session to restore
@@ -981,6 +992,7 @@
             document.getElementById('authOverlay').classList.remove('hidden');
             document.getElementById('startOverlay').classList.add('hidden');
             document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('globalLogout').style.display = 'none';
             document.getElementById('authUsername').value = '';
             document.getElementById('authPassword').value = '';
             document.getElementById('authError').textContent = '';
@@ -1029,9 +1041,17 @@
             d.className = `message ${role}`;
             d.innerHTML = `
                 <div class="message-avatar">${role === 'user' ? '👤' : '🤖'}</div>
-                <div class="message-content">${escapeAndFormat(content)}</div>`;
+                <div class="message-content">${escapeAndFormat(extractPublicContent(content))}</div>`;
             chat.appendChild(d);
             chat.scrollTop = chat.scrollHeight;
+        }
+
+        function extractPublicContent(text) {
+            const matches = [...text.matchAll(/<public>([\s\S]*?)<\/public>/gi)];
+            if (matches.length > 0) {
+                return matches.map(m => m[1].trim()).filter(Boolean).join('\n\n');
+            }
+            return text;
         }
 
         function escapeAndFormat(text) {
