@@ -822,7 +822,6 @@
             <div class="user-info" id="userInfo" style="display:none;">
                 <span class="user-badge" id="userBadge"></span>
                 <button class="btn-history" onclick="openHistory()">History</button>
-                <button class="btn-logout" onclick="logout()">Logout</button>
             </div>
         </div>
 
@@ -844,7 +843,7 @@
         <div class="chat-container">
             <div class="chat-header">
                 <div class="dot"></div>
-                <span>SECURE AI TERMINAL — qwen2.5:3b</span>
+                <span>SECURE AI TERMINAL</span>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="welcome-msg">
@@ -1028,7 +1027,11 @@
                 document.getElementById('statusText').textContent = 'ACTIVE';
                 document.getElementById('statusText').style.color = 'var(--green)';
                 document.getElementById('chatMessages').innerHTML = '';
-                addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
+                if (data.chat_log && data.chat_log.length > 0) {
+                    data.chat_log.forEach(m => addMessage(m.role, m.content));
+                } else {
+                    addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
+                }
                 document.getElementById('msgInput').focus();
             } catch (e) {
                 alert('Failed to start. Is the server running?');
