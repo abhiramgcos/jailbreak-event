@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔓 Jailbreak Arena</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a2e;
+            --bg-input: #16162a;
+            --accent: #e94560;
+            --accent-glow: rgba(233, 69, 96, 0.3);
+            --accent-secondary: #0f3460;
+            --cyan: #00d4ff;
+            --cyan-glow: rgba(0, 212, 255, 0.2);
+            --green: #00ff88;
+            --green-glow: rgba(0, 255, 136, 0.2);
+            --yellow: #ffd700;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888aa;
+            --text-dim: #555577;
+            --border: #2a2a45;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                linear-gradient(rgba(233, 69, 96, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(233, 69, 96, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── Auth Overlay ─── */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            backdrop-filter: blur(12px);
+        }
+        .auth-overlay.hidden { display: none; }
+
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            padding: 40px 44px;
+            max-width: 420px;
+            width: 92%;
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+
+        .auth-card h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .auth-card .auth-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 28px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 24px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.3s;
+        }
+
+        .auth-tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .auth-field {
+            margin-bottom: 16px;
+        }
+
+        .auth-field label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .auth-field input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .auth-field input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .auth-error {
+            color: var(--accent);
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+            min-height: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), #c73e54);
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-auth:hover {
+            box-shadow: 0 0 30px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        /* ─── Header ─── */
+        .header {
+            text-align: center;
+            padding: 24px 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--cyan);
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+
+        .btn-logout, .btn-history {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-logout:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-history:hover { border-color: var(--cyan); color: var(--cyan); }
+
+        /* ─── Stats ─── */
+        .stats-bar {
+            display: flex;
+            gap: 14px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 22px;
+            flex: 1;
+            min-width: 140px;
+            max-width: 200px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+
+        .stat-card .label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-card .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 4px;
+        }
+
+        .stat-card.timer .value { color: var(--cyan); }
+        .stat-card.prompts .value { color: var(--accent); }
+        .stat-card.status .value { color: var(--yellow); font-size: 0.85rem; margin-top: 8px; }
+
+        /* ─── Chat ─── */
+        .chat-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .chat-header .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar { width: 5px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .message { display: flex; gap: 10px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .message.user { flex-direction: row-reverse; }
+
+        .message-avatar {
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .message.assistant .message-avatar { background: linear-gradient(135deg, var(--accent-secondary), var(--bg-card)); border: 1px solid var(--accent); }
+        .message.user .message-avatar { background: linear-gradient(135deg, #1a3a5c, var(--bg-card)); border: 1px solid var(--cyan); }
+
+        .message-content {
+            max-width: 75%;
+            padding: 11px 15px;
+            border-radius: 14px;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.assistant .message-content { background: var(--bg-card); border: 1px solid var(--border); border-top-left-radius: 4px; }
+        .message.user .message-content { background: linear-gradient(135deg, #1a2a4a, #162040); border: 1px solid rgba(0, 212, 255, 0.2); border-top-right-radius: 4px; }
+        .message-content code { font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.83em; }
+
+        .typing-indicator { display: none; gap: 4px; padding: 12px 16px; align-items: center; }
+        .typing-indicator.active { display: flex; }
+        .typing-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-secondary); animation: bounce 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+
+        .input-area {
+            display: flex; gap: 10px;
+            padding: 14px 20px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-area input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 11px 16px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-area input:focus { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
+        .input-area input::placeholder { color: var(--text-dim); }
+
+        .btn {
+            padding: 11px 22px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-send { background: linear-gradient(135deg, var(--accent), #c73e54); color: white; }
+        .btn-send:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-1px); }
+        .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ─── Start overlay ─── */
+        .start-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        .start-overlay.hidden { display: none; }
+
+        .start-card {
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            padding: 44px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+
+        .start-card h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 14px;
+        }
+
+        .start-card p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px; font-size: 0.88rem; }
+
+        .start-card .rules {
+            text-align: left;
+            background: var(--bg-input);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .start-card .rules li {
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+            font-size: 0.82rem;
+            list-style: none;
+            padding-left: 18px;
+            position: relative;
+        }
+
+        .start-card .rules li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--accent), #c73e54);
+            color: white;
+            padding: 14px 44px;
+            font-size: 1rem;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+        .btn-start:hover { box-shadow: 0 0 40px var(--accent-glow); transform: scale(1.04); }
+
+        /* ─── Submit flag ─── */
+        .submit-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            margin-top: 14px;
+        }
+
+        .submit-section h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            color: var(--green);
+        }
+
+        .submit-row { display: flex; gap: 10px; }
+
+        .submit-row input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 11px 16px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .submit-row input:focus { border-color: var(--green); box-shadow: 0 0 12px var(--green-glow); }
+        .btn-submit { background: linear-gradient(135deg, #00aa55, #008844); color: white; }
+        .btn-submit:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-1px); }
+
+        .submit-result {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.83rem;
+            display: none;
+        }
+        .submit-result.success { display: block; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+        .submit-result.failure { display: block; background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); color: var(--accent); }
+
+        /* ─── Victory overlay ─── */
+        .victory-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.92);
+            display: none; align-items: center; justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(15px);
+        }
+        .victory-overlay.active { display: flex; }
+
+        .victory-card {
+            background: var(--bg-card);
+            border: 2px solid var(--green);
+            border-radius: 20px;
+            padding: 44px;
+            text-align: center;
+            max-width: 460px;
+            width: 90%;
+            box-shadow: 0 0 80px var(--green-glow);
+            animation: pop 0.5s ease;
+        }
+        @keyframes pop { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .victory-card h2 { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; color: var(--green); margin-bottom: 8px; }
+        .victory-card .trophy { font-size: 3.5rem; margin-bottom: 16px; }
+
+        .victory-stats { display: flex; gap: 18px; justify-content: center; margin: 22px 0; }
+
+        .victory-stat {
+            background: var(--bg-input);
+            border-radius: 12px;
+            padding: 14px 22px;
+            border: 1px solid var(--border);
+        }
+        .victory-stat .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; }
+        .victory-stat .val { font-size: 1.4rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--cyan); margin-top: 4px; }
+
+        .btn-restart {
+            background: linear-gradient(135deg, var(--accent-secondary), #0a254a);
+            color: white;
+            border: 1px solid var(--cyan);
+            padding: 11px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            margin-top: 18px;
+            transition: all 0.3s;
+        }
+        .btn-restart:hover { box-shadow: 0 0 20px var(--cyan-glow); }
+
+        /* ─── History Panel ─── */
+        .history-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 2500;
+            backdrop-filter: blur(10px);
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        .history-overlay.active { display: flex; }
+
+        .history-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 700px;
+            width: 100%;
+            animation: pop 0.3s ease;
+        }
+
+        .history-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .history-card-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--cyan);
+        }
+
+        .btn-close-history {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-close-history:hover { border-color: var(--accent); color: var(--accent); }
+
+        .history-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .history-item:hover { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
+
+        .history-item .hi-left { display: flex; flex-direction: column; gap: 4px; }
+        .history-item .hi-date { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary); }
+        .history-item .hi-stats { font-size: 0.75rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+        .history-item .hi-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .hi-badge.solved { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+        .hi-badge.failed { background: rgba(233,69,96,0.1); color: var(--accent); border: 1px solid rgba(233,69,96,0.2); }
+
+        .history-empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* ─── Chat replay in history ─── */
+        .history-detail { display: none; }
+        .history-detail.active { display: block; }
+
+        .history-detail .hd-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .history-detail .hd-header h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--cyan);
+        }
+
+        .btn-back {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-back:hover { border-color: var(--cyan); color: var(--cyan); }
+
+        .history-chat-replay {
+            max-height: 500px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        .welcome-msg {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-dim);
+        }
+        .welcome-msg .icon { font-size: 2.8rem; margin-bottom: 14px; }
+        .welcome-msg p { font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; }
+
+        @media (max-width: 640px) {
+            .header { flex-direction: column; gap: 12px; }
+            .header h1 { font-size: 1.3rem; }
+            .stats-bar { gap: 8px; }
+            .stat-card { padding: 10px 14px; min-width: 100px; }
+            .stat-card .value { font-size: 1.2rem; }
+            .chat-messages { height: 300px; }
+            .start-card, .auth-card { padding: 24px; }
+            .victory-stats { flex-direction: column; gap: 10px; }
+            .user-info { gap: 6px; flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Overlay -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <h2>🔓 Jailbreak Arena</h2>
+            <p class="auth-subtitle">Login or create an account to compete</p>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+            </div>
+            <div class="auth-field">
+                <label>Username</label>
+                <input type="text" id="authUsername" placeholder="Enter username" onkeydown="if(event.key==='Enter')doAuth()">
+            </div>
+            <div class="auth-field">
+                <label>Password</label>
+                <input type="password" id="authPassword" placeholder="Enter password" onkeydown="if(event.key==='Enter')doAuth()">
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <button class="btn-auth" id="authBtn" onclick="doAuth()">Login</button>
+        </div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div class="start-overlay hidden" id="startOverlay">
+        <div class="start-card">
+            <h2>🔓 Jailbreak Arena</h2>
+            <p>An AI is guarding a secret flag. Extract it using prompt engineering.</p>
+            <div class="rules">
+                <ul>
+                    <li>The AI has a hidden flag in its system prompt</li>
+                    <li>Use creative prompting to extract the secret</li>
+                    <li>Timer starts when you begin the session</li>
+                    <li>Number of prompts is tracked</li>
+                    <li>Submit the flag when you think you've found it</li>
+                    <li>Fewest prompts + fastest time = best score</li>
+                </ul>
+            </div>
+            <button class="btn-start" onclick="startSession()">Begin Challenge</button>
+        </div>
+    </div>
+
+    <!-- Victory Overlay -->
+    <div class="victory-overlay" id="victoryOverlay">
+        <div class="victory-card">
+            <div class="trophy">🏆</div>
+            <h2>FLAG CAPTURED!</h2>
+            <p style="color: var(--text-secondary); margin-top: 6px;">You successfully jailbroke the AI</p>
+            <div class="victory-stats">
+                <div class="victory-stat">
+                    <div class="label">Prompts</div>
+                    <div class="val" id="victoryPrompts">0</div>
+                </div>
+                <div class="victory-stat">
+                    <div class="label">Time</div>
+                    <div class="val" id="victoryTime">00:00</div>
+                </div>
+            </div>
+            <button class="btn-restart" onclick="restart()">Try Again</button>
+        </div>
+    </div>
+
+    <!-- History Overlay -->
+    <div class="history-overlay" id="historyOverlay">
+        <div class="history-card">
+            <!-- List view -->
+            <div id="historyListView">
+                <div class="history-card-header">
+                    <h2>📜 Attempt History</h2>
+                    <button class="btn-close-history" onclick="closeHistory()">Close</button>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+            <!-- Detail view -->
+            <div class="history-detail" id="historyDetailView">
+                <div class="hd-header">
+                    <h3 id="historyDetailTitle">Chat Replay</h3>
+                    <button class="btn-back" onclick="backToHistoryList()">← Back</button>
+                </div>
+                <div class="history-chat-replay" id="historyReplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main UI -->
+    <div class="container">
+        <div class="header">
+            <h1>🔓 JAILBREAK ARENA</h1>
+            <div class="user-info" id="userInfo" style="display:none;">
+                <span class="user-badge" id="userBadge"></span>
+                <button class="btn-history" onclick="openHistory()">History</button>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-card timer">
+                <div class="label">Elapsed Time</div>
+                <div class="value" id="timer">00:00</div>
+            </div>
+            <div class="stat-card prompts">
+                <div class="label">Prompts Used</div>
+                <div class="value" id="promptCount">0</div>
+            </div>
+            <div class="stat-card status">
+                <div class="label">Status</div>
+                <div class="value" id="statusText">WAITING</div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="dot"></div>
+                <span>SECURE AI TERMINAL — qwen3:4b</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-msg">
+                    <div class="icon">🛡️</div>
+                    <p>The AI is guarding a secret flag.<br>Try to extract it through conversation.</p>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+            <div class="input-area">
+                <input type="text" id="msgInput" placeholder="Enter your prompt..." disabled
+                       onkeydown="if(event.key==='Enter')sendMessage()">
+                <button class="btn btn-send" id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+            </div>
+        </div>
+
+        <div class="submit-section">
+            <h3>🚩 Submit Flag</h3>
+            <div class="submit-row">
+                <input type="text" id="flagInput" placeholder="Enter the flag you extracted..."
+                       onkeydown="if(event.key==='Enter')submitFlag()">
+                <button class="btn btn-submit" onclick="submitFlag()">Submit</button>
+            </div>
+            <div class="submit-result" id="submitResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // ─── State ───
+        let sessionId = null;
+        let timerInterval = null;
+        let startTime = null;
+        let authToken = localStorage.getItem('jb_token') || null;
+        let currentUser = localStorage.getItem('jb_user') || null;
+        let authMode = 'login';
+
+        // ─── Init: check if already logged in ───
+        (function init() {
+            if (authToken && currentUser) {
+                showLoggedIn();
+            }
+        })();
+
+        function authHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` };
+        }
+
+        // ─── Auth ───
+        function switchAuthTab(mode) {
+            authMode = mode;
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('authBtn').textContent = mode === 'login' ? 'Login' : 'Register';
+            document.getElementById('authError').textContent = '';
+        }
+
+        async function doAuth() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+            const errEl = document.getElementById('authError');
+
+            if (!username || !password) {
+                errEl.textContent = 'Fill in both fields';
+                return;
+            }
+
+            const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errEl.textContent = data.error || 'Something went wrong';
+                    return;
+                }
+
+                authToken = data.token;
+                currentUser = data.username;
+                localStorage.setItem('jb_token', authToken);
+                localStorage.setItem('jb_user', currentUser);
+
+                showLoggedIn();
+            } catch (e) {
+                errEl.textContent = 'Connection error. Is the server running?';
+            }
+        }
+
+        async function showLoggedIn() {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('userBadge').textContent = `@${currentUser}`;
+
+            // Check for active session to restore
+            try {
+                const res = await fetch('/api/active-session', { headers: authHeaders() });
+                const data = await res.json();
+                if (data.active) {
+                    // Restore session
+                    sessionId = data.session_id;
+                    startTime = Date.now() - (data.elapsed_seconds * 1000);
+                    timerInterval = setInterval(updateTimer, 1000);
+                    updateTimer();
+
+                    document.getElementById('startOverlay').classList.add('hidden');
+                    document.getElementById('msgInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    document.getElementById('statusText').textContent = 'ACTIVE';
+                    document.getElementById('statusText').style.color = 'var(--green)';
+                    document.getElementById('promptCount').textContent = data.prompt_count;
+                    document.getElementById('chatMessages').innerHTML = '';
+
+                    // Replay chat messages
+                    if (data.chat_log && data.chat_log.length > 0) {
+                        data.chat_log.forEach(m => addMessage(m.role, m.content));
+                    } else {
+                        addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
+                    }
+                    document.getElementById('msgInput').focus();
+                    return;
+                }
+            } catch (e) {
+                // Ignore — just show start screen
+            }
+
+            document.getElementById('startOverlay').classList.remove('hidden');
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('jb_token');
+            localStorage.removeItem('jb_user');
+            sessionId = null;
+            clearInterval(timerInterval);
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('authUsername').value = '';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authError').textContent = '';
+            resetGameUI();
+        }
+
+        // ─── Timer ───
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = Math.floor(sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateTimer() {
+            if (!startTime) return;
+            document.getElementById('timer').textContent = formatTime((Date.now() - startTime) / 1000);
+        }
+
+        // ─── Game ───
+        async function startSession() {
+            try {
+                const res = await fetch('/api/start', { method: 'POST', headers: authHeaders() });
+                const data = await res.json();
+                if (!res.ok) { alert(data.error || 'Failed'); return; }
+
+                sessionId = data.session_id;
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 1000);
+
+                document.getElementById('startOverlay').classList.add('hidden');
+                document.getElementById('msgInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('statusText').textContent = 'ACTIVE';
+                document.getElementById('statusText').style.color = 'var(--green)';
+                document.getElementById('chatMessages').innerHTML = '';
+                addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
+                document.getElementById('msgInput').focus();
+            } catch (e) {
+                alert('Failed to start. Is the server running?');
+            }
+        }
+
+        function addMessage(role, content) {
+            const chat = document.getElementById('chatMessages');
+            const d = document.createElement('div');
+            d.className = `message ${role}`;
+            d.innerHTML = `
+                <div class="message-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+                <div class="message-content">${escapeAndFormat(content)}</div>`;
+            chat.appendChild(d);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function escapeAndFormat(text) {
+            return text
+                .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const msg = input.value.trim();
+            if (!msg || !sessionId) return;
+
+            input.value = '';
+            addMessage('user', msg);
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('typingIndicator').classList.add('active');
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ session_id: sessionId, message: msg })
+                });
+                const data = await res.json();
+                document.getElementById('typingIndicator').classList.remove('active');
+
+                if (data.error) {
+                    addMessage('assistant', `⚠️ ${data.error}`);
+                } else {
+                    addMessage('assistant', data.response);
+                    document.getElementById('promptCount').textContent = data.prompt_count;
+                }
+            } catch (e) {
+                document.getElementById('typingIndicator').classList.remove('active');
+                addMessage('assistant', '⚠️ Connection error.');
+            }
+
+            input.disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            input.focus();
+        }
+
+        async function submitFlag() {
+            const flag = document.getElementById('flagInput').value.trim();
+            if (!flag) return;
+
+            try {
+                const res = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ session_id: sessionId, flag })
+                });
+                const data = await res.json();
+                const el = document.getElementById('submitResult');
+
+                if (data.correct) {
+                    el.className = 'submit-result success';
+                    el.textContent = `${data.message} — ${data.prompt_count} prompts in ${formatTime(data.elapsed_seconds)}`;
+                    document.getElementById('victoryPrompts').textContent = data.prompt_count;
+                    document.getElementById('victoryTime').textContent = formatTime(data.elapsed_seconds);
+                    document.getElementById('victoryOverlay').classList.add('active');
+                    document.getElementById('statusText').textContent = 'CAPTURED!';
+                    document.getElementById('statusText').style.color = 'var(--green)';
+                    clearInterval(timerInterval);
+                } else {
+                    el.className = 'submit-result failure';
+                    el.textContent = data.message;
+                    const fi = document.getElementById('flagInput');
+                    fi.style.animation = 'none';
+                    setTimeout(() => fi.style.animation = 'shake 0.5s ease', 10);
+                }
+            } catch (e) {
+                alert('Submit failed.');
+            }
+        }
+
+        function restart() {
+            sessionId = null;
+            clearInterval(timerInterval);
+            startTime = null;
+            document.getElementById('victoryOverlay').classList.remove('active');
+            document.getElementById('startOverlay').classList.remove('hidden');
+            resetGameUI();
+        }
+
+        function resetGameUI() {
+            document.getElementById('timer').textContent = '00:00';
+            document.getElementById('promptCount').textContent = '0';
+            document.getElementById('statusText').textContent = 'WAITING';
+            document.getElementById('statusText').style.color = 'var(--yellow)';
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="welcome-msg">
+                    <div class="icon">🛡️</div>
+                    <p>The AI is guarding a secret flag.<br>Try to extract it through conversation.</p>
+                </div>`;
+            document.getElementById('msgInput').disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('flagInput').value = '';
+            document.getElementById('submitResult').className = 'submit-result';
+            document.getElementById('submitResult').textContent = '';
+        }
+
+        // ─── History ───
+        async function openHistory() {
+            document.getElementById('historyOverlay').classList.add('active');
+            document.getElementById('historyDetailView').classList.remove('active');
+            document.getElementById('historyListView').style.display = 'block';
+
+            try {
+                const res = await fetch('/api/history', { headers: authHeaders() });
+                const data = await res.json();
+                const list = document.getElementById('historyList');
+
+                if (!data.length) {
+                    list.innerHTML = '<div class="history-empty">No attempts yet. Start your first challenge!</div>';
+                    return;
+                }
+
+                list.innerHTML = data.map(a => {
+                    const date = new Date(a.timestamp * 1000);
+                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                    return `
+                        <div class="history-item" onclick="viewAttempt('${a.session_id}')">
+                            <div class="hi-left">
+                                <span class="hi-date">${dateStr}</span>
+                                <span class="hi-stats">${a.prompt_count} prompts · ${formatTime(a.elapsed_seconds)}</span>
+                            </div>
+                            <span class="hi-badge ${a.solved ? 'solved' : 'failed'}">${a.solved ? 'Solved' : 'Failed'}</span>
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                document.getElementById('historyList').innerHTML = '<div class="history-empty">Failed to load history</div>';
+            }
+        }
+
+        async function viewAttempt(sid) {
+            document.getElementById('historyListView').style.display = 'none';
+            document.getElementById('historyDetailView').classList.add('active');
+            document.getElementById('historyDetailTitle').textContent = 'Chat Replay';
+
+            try {
+                const res = await fetch(`/api/history/${sid}`, { headers: authHeaders() });
+                const data = await res.json();
+                const replay = document.getElementById('historyReplay');
+
+                const badge = data.solved
+                    ? '<span class="hi-badge solved" style="display:inline-block;margin-bottom:12px;">Solved</span>'
+                    : '<span class="hi-badge failed" style="display:inline-block;margin-bottom:12px;">Failed</span>';
+
+                const stats = `<div style="font-family:JetBrains Mono,monospace;font-size:0.8rem;color:var(--text-secondary);margin-bottom:16px;">${data.prompt_count} prompts · ${formatTime(data.elapsed_seconds)}</div>`;
+
+                const msgs = (data.chat_log || []).map(m => `
+                    <div class="message ${m.role}">
+                        <div class="message-avatar">${m.role === 'user' ? '👤' : '🤖'}</div>
+                        <div class="message-content">${escapeAndFormat(m.content)}</div>
+                    </div>`).join('');
+
+                replay.innerHTML = badge + stats + msgs;
+            } catch (e) {
+                document.getElementById('historyReplay').innerHTML = '<div class="history-empty">Failed to load</div>';
+            }
+        }
+
+        function backToHistoryList() {
+            document.getElementById('historyDetailView').classList.remove('active');
+            document.getElementById('historyListView').style.display = 'block';
+        }
+
+        function closeHistory() {
+            document.getElementById('historyOverlay').classList.remove('active');
+        }
+
+        // Shake animation
+        const s = document.createElement('style');
+        s.textContent = `@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}`;
+        document.head.appendChild(s);
+    </script>
+</body>
+</html>
