@@ -487,6 +487,168 @@
             .main { padding: 16px; }
             .tabs { overflow-x: auto; width: 100%; }
         }
+
+        /* ─── Danger Zone ─── */
+        .danger-zone {
+            background: var(--bg-card);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .danger-zone h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--red);
+            margin-bottom: 8px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .danger-zone p {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            margin-bottom: 20px;
+        }
+        .danger-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .btn-danger {
+            padding: 10px 20px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.08);
+            color: var(--red);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: var(--red);
+            box-shadow: 0 0 20px var(--red-glow);
+        }
+        .btn-danger.wipe {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--red);
+        }
+        .btn-danger.wipe:hover {
+            background: var(--red);
+            color: white;
+        }
+        .btn-delete-sm {
+            padding: 3px 10px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--red);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-delete-sm:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--red);
+        }
+
+        /* ─── Confirm Modal ─── */
+        .confirm-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none; align-items: center; justify-content: center;
+            z-index: 6000;
+            backdrop-filter: blur(8px);
+        }
+        .confirm-overlay.active { display: flex; }
+        .confirm-card {
+            background: var(--bg-card);
+            border: 1px solid var(--red);
+            border-radius: 16px;
+            padding: 28px 32px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 60px var(--red-glow);
+            animation: fadeIn 0.2s ease;
+        }
+        .confirm-card h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.05rem;
+            color: var(--red);
+            margin-bottom: 12px;
+        }
+        .confirm-card p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .confirm-card .confirm-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .confirm-card .confirm-input:focus { border-color: var(--red); }
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .confirm-buttons button {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.25s;
+        }
+        .confirm-buttons .btn-cancel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .confirm-buttons .btn-cancel:hover { border-color: var(--text-dim); color: var(--text-primary); }
+        .confirm-buttons .btn-confirm-danger {
+            background: var(--red);
+            border: 1px solid var(--red);
+            color: white;
+        }
+        .confirm-buttons .btn-confirm-danger:hover { box-shadow: 0 0 20px var(--red-glow); }
+        .confirm-buttons .btn-confirm-danger:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            z-index: 7000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .toast.success { background: rgba(16,185,129,0.15); border: 1px solid var(--green); color: var(--green); }
+        .toast.error { background: rgba(239,68,68,0.15); border: 1px solid var(--red); color: var(--red); }
     </style>
 </head>
 <body>
@@ -554,6 +716,7 @@
             <button class="tab-btn" onclick="switchTab('users')">Users</button>
             <button class="tab-btn" onclick="switchTab('sessions')">Sessions</button>
             <button class="tab-btn" onclick="switchTab('flags')">Flag Attempts</button>
+            <button class="tab-btn" onclick="switchTab('danger')" style="color:var(--red);">⚠ Danger</button>
         </div>
 
         <!-- Live Feed -->
@@ -591,6 +754,7 @@
                                 <th>Prompts</th>
                                 <th>Solves</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="usersTableBody">
@@ -617,7 +781,7 @@
                                 <th>Prompts</th>
                                 <th>Messages</th>
                                 <th>Status</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="sessionsTableBody">
@@ -651,6 +815,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Danger Zone -->
+        <div class="tab-panel" id="tab-danger">
+            <div class="danger-zone">
+                <h3>⚠️ Danger Zone</h3>
+                <p>These actions are irreversible. Deleted data cannot be recovered.</p>
+                <div class="danger-actions">
+                    <button class="btn-danger" onclick="confirmClearLogs()">🗑️ Clear Event Logs</button>
+                    <button class="btn-danger" onclick="confirmDeleteAllSessions()">📊 Delete All Sessions</button>
+                    <button class="btn-danger" onclick="confirmDeleteAllAttempts()">🚩 Delete All Attempts</button>
+                    <button class="btn-danger wipe" onclick="confirmFullWipe()">💀 FULL DATA WIPE</button>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Session Detail Modal -->
@@ -661,6 +842,19 @@
                 <button class="btn-sm" onclick="closeModal()">✕ Close</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="confirm-overlay" id="confirmModal">
+        <div class="confirm-card">
+            <h3 id="confirmTitle">Are you sure?</h3>
+            <p id="confirmMessage">This action cannot be undone.</p>
+            <input type="text" class="confirm-input" id="confirmInput" placeholder="" style="display:none;">
+            <div class="confirm-buttons">
+                <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+                <button class="btn-confirm-danger" id="confirmBtn" onclick="executeConfirm()">Delete</button>
+            </div>
         </div>
     </div>
 
@@ -904,7 +1098,7 @@
             const tbody = document.getElementById('usersTableBody');
 
             if (!data.length) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No users yet</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-dim);">No users yet</td></tr>';
                 return;
             }
 
@@ -917,6 +1111,7 @@
                     <td class="mono">${u.total_prompts}</td>
                     <td class="mono ${u.solves > 0 ? 'text-green' : ''}">${u.solves}</td>
                     <td><span class="badge ${u.is_active ? 'online' : 'offline'}">${u.is_active ? 'online' : 'offline'}</span></td>
+                    <td><button class="btn-delete-sm" onclick="confirmDeleteUser('${escapeHtml(u.username)}')">Delete</button></td>
                 </tr>`;
             }).join('');
         }
@@ -948,7 +1143,7 @@
                     <td class="mono">${s.prompt_count}</td>
                     <td class="mono">${s.chat_log_length}</td>
                     <td>${badge}</td>
-                    <td><button class="btn-sm" onclick="viewSession('${escapeHtml(s.session_id)}')">View</button></td>
+                    <td style="display:flex;gap:6px;"><button class="btn-sm" onclick="viewSession('${escapeHtml(s.session_id)}')">View</button><button class="btn-delete-sm" onclick="confirmDeleteSession('${escapeHtml(s.session_id)}')">Delete</button></td>
                 </tr>`;
             }).join('');
         }
@@ -1036,7 +1231,161 @@
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+        });
+
+        // ─── Delete / Wipe Functions ───
+        let pendingAction = null;
+
+        function showConfirm(title, message, btnText, action, requireInput = false, inputPlaceholder = '') {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmBtn').textContent = btnText;
+            const input = document.getElementById('confirmInput');
+            if (requireInput) {
+                input.style.display = 'block';
+                input.value = '';
+                input.placeholder = inputPlaceholder;
+                document.getElementById('confirmBtn').disabled = true;
+                input.oninput = () => {
+                    document.getElementById('confirmBtn').disabled = input.value.trim() !== inputPlaceholder;
+                };
+            } else {
+                input.style.display = 'none';
+                document.getElementById('confirmBtn').disabled = false;
+            }
+            pendingAction = action;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirmModal').classList.remove('active');
+            pendingAction = null;
+        }
+
+        async function executeConfirm() {
+            if (pendingAction) {
+                closeConfirm();
+                await pendingAction();
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function adminDelete(url, method = 'DELETE', body = null) {
+            try {
+                const opts = {
+                    method,
+                    headers: { 'X-Admin-Secret': adminSecret, 'Content-Type': 'application/json' },
+                };
+                if (body) opts.body = JSON.stringify(body);
+                const res = await fetch(url, opts);
+                return await res.json();
+            } catch (e) {
+                return { error: 'Request failed' };
+            }
+        }
+
+        function confirmDeleteUser(username) {
+            showConfirm(
+                'Delete User',
+                `Delete user "${username}" and ALL their sessions, attempts, and logs? This cannot be undone.`,
+                'Delete User',
+                async () => {
+                    const res = await adminDelete(`/api/admin/delete/user/${encodeURIComponent(username)}`);
+                    if (res.error) { showToast(res.error, 'error'); }
+                    else { showToast(res.message); loadUsers(); refreshStats(); }
+                }
+            );
+        }
+
+        function confirmDeleteSession(sessionId) {
+            showConfirm(
+                'Delete Session',
+                `Delete this session and its related attempts? This cannot be undone.`,
+                'Delete Session',
+                async () => {
+                    const res = await adminDelete(`/api/admin/delete/session/${encodeURIComponent(sessionId)}`);
+                    if (res.error) { showToast(res.error, 'error'); }
+                    else { showToast(res.message); loadSessions(); refreshStats(); }
+                }
+            );
+        }
+
+        function confirmClearLogs() {
+            showConfirm(
+                'Clear Event Logs',
+                'This will delete all admin event logs (prompts, responses, flag attempts). Dashboard stats will reset. Continue?',
+                'Clear Logs',
+                async () => {
+                    const res = await adminDelete('/api/admin/clear-logs', 'POST');
+                    if (res.error) { showToast(res.error, 'error'); }
+                    else { showToast(res.message); clearFeed(); refreshStats(); }
+                }
+            );
+        }
+
+        function confirmDeleteAllSessions() {
+            showConfirm(
+                'Delete All Sessions',
+                'This will delete ALL sessions for ALL users. Type DELETE to confirm.',
+                'Delete All',
+                async () => {
+                    const res = await adminDelete('/api/admin/delete/all-sessions', 'POST', { confirm: 'DELETE' });
+                    if (res.error) { showToast(res.error, 'error'); }
+                    else { showToast(res.message); loadSessions(); refreshStats(); }
+                },
+                true, 'DELETE'
+            );
+        }
+
+        function confirmDeleteAllAttempts() {
+            showConfirm(
+                'Delete All Attempts',
+                'This will delete ALL flag submission attempts. Type DELETE to confirm.',
+                'Delete All',
+                async () => {
+                    const res = await adminDelete('/api/admin/delete/all-attempts', 'POST', { confirm: 'DELETE' });
+                    if (res.error) { showToast(res.error, 'error'); }
+                    else { showToast(res.message); loadFlags(); refreshStats(); }
+                },
+                true, 'DELETE'
+            );
+        }
+
+        function confirmFullWipe() {
+            showConfirm(
+                '💀 FULL DATA WIPE',
+                'This will permanently delete ALL users, sessions, attempts, and logs. Everything. Gone. Type WIPE_ALL_DATA to confirm.',
+                'WIPE EVERYTHING',
+                async () => {
+                    const res = await adminDelete('/api/admin/wipe', 'POST', { confirm: 'WIPE_ALL_DATA' });
+                    if (res.error) {
+                        showToast(res.error, 'error');
+                    } else {
+                        showToast(`Wiped: ${res.deleted.users} users, ${res.deleted.sessions} sessions, ${res.deleted.attempts} attempts, ${res.deleted.logs} logs`);
+                        clearFeed();
+                        refreshStats();
+                        loadUsers();
+                        loadSessions();
+                        loadFlags();
+                    }
+                },
+                true, 'WIPE_ALL_DATA'
+            );
+        }
+
+        // Close confirm on backdrop click
+        document.getElementById('confirmModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeConfirm();
         });
     </script>
 </body>

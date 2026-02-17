@@ -901,6 +901,134 @@ def admin_flag_attempts():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_app.route("/api/admin/delete/user/<username>", methods=["DELETE"])
+@require_admin
+def admin_delete_user(username):
+    """Delete a user and all their associated data."""
+    try:
+        user = users_col.find_one({"username": username})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Delete all related data
+        sessions_col.delete_many({"username": username})
+        attempts_col.delete_many({"username": username})
+        admin_logs_col.delete_many({"data.username": username})
+        users_col.delete_one({"username": username})
+
+        log_admin_event("admin_delete_user", {"deleted_user": username})
+        logger.info(f"Admin deleted user: {username}")
+        return jsonify({"message": f"User '{username}' and all related data deleted"})
+    except Exception as e:
+        logger.error(f"Admin delete user error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_app.route("/api/admin/delete/session/<session_id>", methods=["DELETE"])
+@require_admin
+def admin_delete_session(session_id):
+    """Delete a specific session and its attempts."""
+    try:
+        session = sessions_col.find_one({"session_id": session_id})
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
+
+        sessions_col.delete_one({"session_id": session_id})
+        attempts_col.delete_many({"session_id": session_id})
+
+        log_admin_event("admin_delete_session", {"deleted_session": session_id, "username": session.get("username")})
+        logger.info(f"Admin deleted session: {session_id}")
+        return jsonify({"message": f"Session '{session_id}' deleted"})
+    except Exception as e:
+        logger.error(f"Admin delete session error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_app.route("/api/admin/wipe", methods=["POST"])
+@require_admin
+def admin_wipe_all():
+    """Full data wipe — deletes ALL users, sessions, attempts, and logs."""
+    try:
+        body = request.json or {}
+        confirm = body.get("confirm", "")
+        if confirm != "WIPE_ALL_DATA":
+            return jsonify({"error": "Send {\"confirm\": \"WIPE_ALL_DATA\"} to confirm"}), 400
+
+        u_count = users_col.count_documents({})
+        s_count = sessions_col.count_documents({})
+        a_count = attempts_col.count_documents({})
+        l_count = admin_logs_col.count_documents({})
+
+        users_col.delete_many({})
+        sessions_col.delete_many({})
+        attempts_col.delete_many({})
+        admin_logs_col.delete_many({})
+
+        logger.warning(f"FULL DATA WIPE: {u_count} users, {s_count} sessions, {a_count} attempts, {l_count} logs deleted")
+        return jsonify({
+            "message": "All data wiped",
+            "deleted": {
+                "users": u_count,
+                "sessions": s_count,
+                "attempts": a_count,
+                "logs": l_count,
+            }
+        })
+    except Exception as e:
+        logger.error(f"Admin wipe error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_app.route("/api/admin/delete/all-sessions", methods=["POST"])
+@require_admin
+def admin_delete_all_sessions():
+    """Delete all sessions."""
+    try:
+        body = request.json or {}
+        if body.get("confirm") != "DELETE":
+            return jsonify({"error": "Send {\"confirm\": \"DELETE\"} to confirm"}), 400
+        count = sessions_col.count_documents({})
+        sessions_col.delete_many({})
+        log_admin_event("admin_delete_all_sessions", {"count": count})
+        logger.info(f"Admin deleted all {count} sessions")
+        return jsonify({"message": f"{count} sessions deleted"})
+    except Exception as e:
+        logger.error(f"Admin delete all sessions error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_app.route("/api/admin/delete/all-attempts", methods=["POST"])
+@require_admin
+def admin_delete_all_attempts():
+    """Delete all flag attempts."""
+    try:
+        body = request.json or {}
+        if body.get("confirm") != "DELETE":
+            return jsonify({"error": "Send {\"confirm\": \"DELETE\"} to confirm"}), 400
+        count = attempts_col.count_documents({})
+        attempts_col.delete_many({})
+        log_admin_event("admin_delete_all_attempts", {"count": count})
+        logger.info(f"Admin deleted all {count} attempts")
+        return jsonify({"message": f"{count} attempts deleted"})
+    except Exception as e:
+        logger.error(f"Admin delete all attempts error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_app.route("/api/admin/clear-logs", methods=["POST"])
+@require_admin
+def admin_clear_logs():
+    """Clear admin event logs only."""
+    try:
+        count = admin_logs_col.count_documents({})
+        admin_logs_col.delete_many({})
+        logger.info(f"Admin cleared {count} log entries")
+        return jsonify({"message": f"{count} log entries cleared"})
+    except Exception as e:
+        logger.error(f"Admin clear logs error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_app.errorhandler(404)
 def admin_not_found(e):
     return jsonify({"error": "Not found"}), 404
