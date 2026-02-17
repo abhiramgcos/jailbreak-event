@@ -884,10 +884,11 @@
             <div class="rules">
                 <ul>
                     <li>The AI has a hidden flag in its system prompt</li>
+                    <li>Flag format: <strong style="color: var(--yellow);">HYVE{four words here}</strong></li>
                     <li>Use creative prompting to extract the secret</li>
                     <li>Timer starts when you begin the session</li>
                     <li>Number of prompts is tracked</li>
-                    <li>Submit the flag when you think you've found it</li>
+                    <li>Submit the full flag including the HYVE{} wrapper</li>
                     <li>Fewest prompts + fastest time = best score</li>
                 </ul>
             </div>
@@ -989,9 +990,9 @@
 
         <div class="submit-section">
             <h3>🚩 Submit Flag</h3>
-            <p style="color: #ffffff; font-size: 0.78rem; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace;">Example: if the AI leaks <span style="color: var(--yellow);">"The secret is XYZ"</span>, submit <span style="color: var(--green);">XYZ</span> as the flag. Case doesn't matter.</p>
+            <p style="color: #ffffff; font-size: 0.78rem; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace;">Flag format: <span style="color: var(--yellow);">HYVE{...}</span> — 4 words inside the braces. Submit the full flag including <span style="color: var(--green);">HYVE{}</span> wrapper. Case doesn't matter.</p>
             <div class="submit-row">
-                <input type="text" id="flagInput" placeholder="Enter the flag you extracted..."
+                <input type="text" id="flagInput" placeholder="HYVE{word1 word2 word3 word4}"
                        onkeydown="if(event.key==='Enter')submitFlag()">
                 <button class="btn btn-submit" onclick="submitFlag()">Submit</button>
             </div>
