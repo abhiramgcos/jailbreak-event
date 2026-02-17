@@ -1,0 +1,36 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: jailbreak-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-jailbreak_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-jailbreak_secret_2024}
+      MONGO_INITDB_DATABASE: jailbreak
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: jailbreak-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      MONGO_URI: mongodb://${MONGO_USER:-jailbreak_admin}:${MONGO_PASS:-jailbreak_secret_2024}@mongodb:27017/jailbreak?authSource=admin
+      OLLAMA_HOST: ${OLLAMA_HOST:-host.docker.internal}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mongo_data:

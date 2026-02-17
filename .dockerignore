@@ -1,0 +1,9 @@
+__pycache__
+*.pyc
+.env
+data.json
+server_backup.py
+mongo_data
+.git
+.gitignore
+README.md
