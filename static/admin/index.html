@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — Jailbreak Arena</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-primary: #080810;
+            --bg-secondary: #0e0e1a;
+            --bg-card: #14142a;
+            --bg-input: #1a1a32;
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.25);
+            --cyan: #06b6d4;
+            --cyan-glow: rgba(6, 182, 212, 0.15);
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.15);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.15);
+            --yellow: #f59e0b;
+            --orange: #f97316;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-dim: #475569;
+            --border: #1e293b;
+            --border-hover: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ─── Login Screen ─── */
+        .login-overlay {
+            position: fixed; inset: 0;
+            background: var(--bg-primary);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9000;
+            transition: opacity 0.4s ease;
+        }
+        .login-overlay.hidden { opacity: 0; pointer-events: none; }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            padding: 40px;
+            width: 380px;
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+
+        .login-card h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            color: var(--accent);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .login-card .sub { text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-bottom: 28px; }
+
+        .login-card input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            margin-bottom: 16px;
+            transition: border-color 0.3s;
+        }
+        .login-card input:focus { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+        .login-card button:hover { box-shadow: 0 0 30px var(--accent-glow); }
+
+        .login-error { color: var(--red); font-size: 0.8rem; text-align: center; min-height: 20px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+
+        /* ─── Layout ─── */
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 28px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .app-header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            color: var(--accent);
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .app-header .controls { display: flex; align-items: center; gap: 12px; }
+
+        .live-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+            display: inline-block;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .status-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--green);
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+        .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* ─── Stats Grid ─── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-tile {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-tile:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .stat-tile::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            border-radius: 12px 12px 0 0;
+        }
+        .stat-tile.purple::before { background: var(--accent); }
+        .stat-tile.cyan::before { background: var(--cyan); }
+        .stat-tile.green::before { background: var(--green); }
+        .stat-tile.red::before { background: var(--red); }
+        .stat-tile.yellow::before { background: var(--yellow); }
+        .stat-tile.orange::before { background: var(--orange); }
+
+        .stat-tile .s-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+        .stat-tile .s-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .stat-tile.purple .s-value { color: var(--accent); }
+        .stat-tile.cyan .s-value { color: var(--cyan); }
+        .stat-tile.green .s-value { color: var(--green); }
+        .stat-tile.red .s-value { color: var(--red); }
+        .stat-tile.yellow .s-value { color: var(--yellow); }
+        .stat-tile.orange .s-value { color: var(--orange); }
+
+        .stat-tile .s-sub {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 4px;
+        }
+
+        /* ─── Tabs ─── */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 3px;
+            border: 1px solid var(--border);
+            width: fit-content;
+        }
+
+        .tab-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .tab-btn:hover { color: var(--text-secondary); }
+        .tab-btn.active { background: var(--accent); color: white; }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ─── Tables ─── */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .panel-body { padding: 0; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            text-align: left;
+            padding: 10px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0;
+        }
+
+        td {
+            padding: 10px 16px;
+            font-size: 0.82rem;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+            color: var(--text-secondary);
+        }
+
+        tr:hover td { background: rgba(139, 92, 246, 0.03); }
+
+        .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .badge.online { background: rgba(16,185,129,0.12); color: var(--green); }
+        .badge.offline { background: rgba(71,85,105,0.2); color: var(--text-dim); }
+        .badge.solved { background: rgba(16,185,129,0.12); color: var(--green); }
+        .badge.failed { background: rgba(239,68,68,0.12); color: var(--red); }
+        .badge.active { background: rgba(6,182,212,0.12); color: var(--cyan); }
+        .badge.close { background: rgba(245,158,11,0.12); color: var(--yellow); }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .text-dim { color: var(--text-dim); }
+        .text-cyan { color: var(--cyan); }
+        .text-green { color: var(--green); }
+        .text-red { color: var(--red); }
+        .text-accent { color: var(--accent); }
+
+        /* ─── Live Feed ─── */
+        .feed-container {
+            max-height: 600px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .feed-container::-webkit-scrollbar { width: 4px; }
+        .feed-container::-webkit-scrollbar-track { background: transparent; }
+        .feed-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .feed-item {
+            display: flex; gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.4);
+            animation: slideIn 0.3s ease;
+            transition: background 0.2s;
+        }
+        .feed-item:hover { background: rgba(139, 92, 246, 0.03); }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .feed-item .fi-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            min-width: 65px;
+            flex-shrink: 0;
+            padding-top: 2px;
+        }
+
+        .feed-item .fi-user {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--cyan);
+            min-width: 90px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .feed-item .fi-content {
+            flex: 1;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .feed-item .fi-prompt {
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            padding: 8px 12px;
+            background: rgba(6, 182, 212, 0.06);
+            border-left: 2px solid var(--cyan);
+            border-radius: 0 6px 6px 0;
+            word-break: break-word;
+        }
+
+        .feed-item .fi-response {
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            padding: 8px 12px;
+            background: rgba(139, 92, 246, 0.04);
+            border-left: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 0 6px 6px 0;
+            max-height: 120px;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+
+        .feed-empty {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* ─── Session Detail Modal ─── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none; align-items: flex-start; justify-content: center;
+            z-index: 5000;
+            padding: 40px 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(8px);
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; color: var(--accent); }
+
+        .modal-body {
+            padding: 20px 24px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-body::-webkit-scrollbar { width: 4px; }
+        .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .chat-bubble {
+            margin-bottom: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        .chat-bubble.user { flex-direction: row-reverse; }
+
+        .chat-bubble .cb-avatar {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .chat-bubble.assistant .cb-avatar { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); }
+        .chat-bubble.user .cb-avatar { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); }
+
+        .chat-bubble .cb-text {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .chat-bubble.assistant .cb-text { background: var(--bg-secondary); border: 1px solid var(--border); border-top-left-radius: 3px; }
+        .chat-bubble.user .cb-text { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2); border-top-right-radius: 3px; }
+
+        /* ─── Flag Attempts Panel ─── */
+        .flag-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(30,41,59,0.4);
+        }
+        .flag-row .fr-flag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            flex: 1;
+            word-break: break-word;
+        }
+
+        /* ─── Scrollbar ─── */
+        .table-scroll {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .table-scroll::-webkit-scrollbar { width: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .app-header { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+            .main { padding: 16px; }
+            .tabs { overflow-x: auto; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <h2>🛡️ Admin Panel</h2>
+            <p class="sub">Jailbreak Arena Administration</p>
+            <input type="password" id="secretInput" placeholder="Enter admin secret..." 
+                   onkeydown="if(event.key==='Enter')adminLogin()">
+            <div class="login-error" id="loginError"></div>
+            <button onclick="adminLogin()">Authenticate</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="app-header" id="appHeader" style="display:none;">
+        <h1>🛡️ ADMIN PANEL</h1>
+        <div class="controls">
+            <span class="status-pill" id="statusPill">
+                <span class="live-dot"></span>
+                <span id="connectionStatus">LIVE</span>
+            </span>
+            <button class="btn-sm" onclick="refreshAll()">↻ Refresh</button>
+            <button class="btn-sm" onclick="adminLogout()">Logout</button>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main" id="mainContent" style="display:none;">
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-tile purple">
+                <div class="s-label">Total Users</div>
+                <div class="s-value" id="sTotalUsers">-</div>
+            </div>
+            <div class="stat-tile cyan">
+                <div class="s-label">Active Sessions</div>
+                <div class="s-value" id="sActiveSessions">-</div>
+            </div>
+            <div class="stat-tile green">
+                <div class="s-label">Solve Rate</div>
+                <div class="s-value" id="sSolveRate">-</div>
+                <div class="s-sub" id="sSolveSub"></div>
+            </div>
+            <div class="stat-tile yellow">
+                <div class="s-label">Total Prompts</div>
+                <div class="s-value" id="sTotalPrompts">-</div>
+            </div>
+            <div class="stat-tile orange">
+                <div class="s-label">Avg Prompts/Solve</div>
+                <div class="s-value" id="sAvgPrompts">-</div>
+            </div>
+            <div class="stat-tile red">
+                <div class="s-label">Sessions (24h)</div>
+                <div class="s-value" id="sRecent24h">-</div>
+                <div class="s-sub" id="sRecentSolves24h"></div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('feed')">Live Feed</button>
+            <button class="tab-btn" onclick="switchTab('users')">Users</button>
+            <button class="tab-btn" onclick="switchTab('sessions')">Sessions</button>
+            <button class="tab-btn" onclick="switchTab('flags')">Flag Attempts</button>
+        </div>
+
+        <!-- Live Feed -->
+        <div class="tab-panel active" id="tab-feed">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3><span class="live-dot"></span> Live Prompt Feed</h3>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <label style="font-size:0.7rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;">
+                            <input type="checkbox" id="autoScroll" checked> Auto-scroll
+                        </label>
+                        <button class="btn-sm" onclick="clearFeed()">Clear</button>
+                    </div>
+                </div>
+                <div class="feed-container" id="feedContainer">
+                    <div class="feed-empty" id="feedEmpty">Waiting for prompts...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users -->
+        <div class="tab-panel" id="tab-users">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>👥 Registered Users</h3>
+                    <span class="mono text-dim" style="font-size:0.7rem;" id="userCount"></span>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Joined</th>
+                                <th>Sessions</th>
+                                <th>Prompts</th>
+                                <th>Solves</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="tab-panel" id="tab-sessions">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>📊 All Sessions</h3>
+                    <span class="mono text-dim" style="font-size:0.7rem;" id="sessionCount"></span>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Started</th>
+                                <th>Prompts</th>
+                                <th>Messages</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessionsTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flag Attempts -->
+        <div class="tab-panel" id="tab-flags">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>🚩 Flag Submission Attempts</h3>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>User</th>
+                                <th>Submitted Flag</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody id="flagsTableBody">
+                            <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Detail Modal -->
+    <div class="modal-overlay" id="sessionModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">Session Chat Log</h3>
+                <button class="btn-sm" onclick="closeModal()">✕ Close</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        let adminSecret = localStorage.getItem('admin_secret') || '';
+        let refreshInterval = null;
+        let eventSource = null;
+        let lastFeedTimestamp = 0;
+
+        // ─── Login ───
+        function adminLogin() {
+            const input = document.getElementById('secretInput');
+            adminSecret = input.value.trim();
+            if (!adminSecret) {
+                document.getElementById('loginError').textContent = 'Enter the admin secret';
+                return;
+            }
+            // Test the secret
+            fetchAdmin('/api/admin/stats').then(data => {
+                if (data.error) {
+                    document.getElementById('loginError').textContent = 'Invalid secret';
+                    adminSecret = '';
+                } else {
+                    localStorage.setItem('admin_secret', adminSecret);
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('appHeader').style.display = 'flex';
+                    document.getElementById('mainContent').style.display = 'block';
+                    startDashboard();
+                }
+            }).catch(() => {
+                document.getElementById('loginError').textContent = 'Connection failed';
+            });
+        }
+
+        function adminLogout() {
+            adminSecret = '';
+            localStorage.removeItem('admin_secret');
+            stopDashboard();
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('appHeader').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('secretInput').value = '';
+            document.getElementById('loginError').textContent = '';
+        }
+
+        // Auto-login if stored
+        if (adminSecret) {
+            fetchAdmin('/api/admin/stats').then(data => {
+                if (!data.error) {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('appHeader').style.display = 'flex';
+                    document.getElementById('mainContent').style.display = 'block';
+                    startDashboard();
+                } else {
+                    adminSecret = '';
+                    localStorage.removeItem('admin_secret');
+                }
+            }).catch(() => {});
+        }
+
+        // ─── API ───
+        async function fetchAdmin(url) {
+            try {
+                const res = await fetch(url, {
+                    headers: { 'X-Admin-Secret': adminSecret }
+                });
+                return await res.json();
+            } catch (e) {
+                console.error('Fetch error:', e);
+                return { error: 'Connection failed' };
+            }
+        }
+
+        // ─── Tabs ───
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${name}`).classList.add('active');
+
+            // Lazy load tab data
+            if (name === 'users') loadUsers();
+            if (name === 'sessions') loadSessions();
+            if (name === 'flags') loadFlags();
+        }
+
+        // ─── Dashboard ───
+        function startDashboard() {
+            refreshAll();
+            refreshInterval = setInterval(refreshStats, 5000);
+            startLiveFeed();
+        }
+
+        function stopDashboard() {
+            clearInterval(refreshInterval);
+            if (eventSource) { eventSource.close(); eventSource = null; }
+        }
+
+        async function refreshAll() {
+            await Promise.all([refreshStats(), loadPromptFeed()]);
+        }
+
+        async function refreshStats() {
+            const data = await fetchAdmin('/api/admin/stats');
+            if (data.error) return;
+
+            animateValue('sTotalUsers', data.total_users);
+            animateValue('sActiveSessions', data.active_sessions);
+            document.getElementById('sSolveRate').textContent = `${data.solve_rate}%`;
+            document.getElementById('sSolveSub').textContent = `${data.solved_attempts}/${data.total_attempts} attempts`;
+            animateValue('sTotalPrompts', data.total_prompts);
+            animateValue('sAvgPrompts', data.avg_prompts_to_solve);
+            animateValue('sRecent24h', data.recent_sessions_24h);
+            document.getElementById('sRecentSolves24h').textContent = `${data.recent_solves_24h} solved`;
+        }
+
+        function animateValue(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        // ─── Live Feed ───
+        function startLiveFeed() {
+            if (eventSource) eventSource.close();
+
+            try {
+                eventSource = new EventSource(`/api/admin/live-events?secret=${encodeURIComponent(adminSecret)}`);
+
+                eventSource.onmessage = (e) => {
+                    try {
+                        const event = JSON.parse(e.data);
+                        if (event.type === 'heartbeat' || event.type === 'connected') return;
+                        if (event.type === 'prompt') {
+                            addFeedItem(event);
+                        }
+                        // Refresh stats on certain events
+                        if (['flag_submit', 'session_start', 'register'].includes(event.type)) {
+                            refreshStats();
+                        }
+                    } catch (err) {
+                        console.error('SSE parse error:', err);
+                    }
+                };
+
+                eventSource.onerror = () => {
+                    document.getElementById('connectionStatus').textContent = 'RECONNECTING';
+                    document.querySelector('.status-pill').style.borderColor = 'rgba(245,158,11,0.3)';
+                    document.querySelector('.status-pill').style.color = 'var(--yellow)';
+                    // EventSource auto-reconnects
+                    setTimeout(() => {
+                        document.getElementById('connectionStatus').textContent = 'LIVE';
+                        document.querySelector('.status-pill').style.borderColor = '';
+                        document.querySelector('.status-pill').style.color = '';
+                    }, 3000);
+                };
+
+                eventSource.onopen = () => {
+                    document.getElementById('connectionStatus').textContent = 'LIVE';
+                };
+            } catch (e) {
+                console.error('SSE failed, falling back to polling');
+                setInterval(loadPromptFeed, 5000);
+            }
+        }
+
+        async function loadPromptFeed() {
+            const data = await fetchAdmin(`/api/admin/prompts?limit=100&since=${lastFeedTimestamp}`);
+            if (data.error) return;
+
+            const container = document.getElementById('feedContainer');
+            const empty = document.getElementById('feedEmpty');
+
+            if (data.prompts && data.prompts.length > 0) {
+                if (empty) empty.style.display = 'none';
+                data.prompts.forEach(p => addFeedItem({
+                    data: p,
+                    timestamp: p.timestamp,
+                    type: 'prompt'
+                }));
+                lastFeedTimestamp = data.server_time;
+            }
+        }
+
+        function addFeedItem(event) {
+            const container = document.getElementById('feedContainer');
+            const empty = document.getElementById('feedEmpty');
+            if (empty) empty.style.display = 'none';
+
+            const d = event.data || {};
+            const time = new Date((event.timestamp || 0) * 1000);
+            const timeStr = time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'feed-item';
+
+            let content = '';
+            if (event.type === 'prompt') {
+                content = `<div class="fi-prompt">${escapeHtml(d.message || '')}</div>`;
+            } else if (event.type === 'flag_submit') {
+                const badge = d.correct ? '<span class="badge solved">correct</span>' : 
+                              d.close ? '<span class="badge close">close!</span>' : 
+                              '<span class="badge failed">wrong</span>';
+                content = `<div class="fi-prompt" style="border-left-color:var(--yellow)">🚩 Flag: "${escapeHtml(d.submitted || '')}" ${badge}</div>`;
+            } else if (event.type === 'session_start') {
+                content = `<div class="fi-prompt" style="border-left-color:var(--green)">▶ Started new session</div>`;
+            } else if (event.type === 'register') {
+                content = `<div class="fi-prompt" style="border-left-color:var(--accent)">🆕 New user registered</div>`;
+            } else {
+                return; // skip heartbeats etc
+            }
+
+            item.innerHTML = `
+                <div class="fi-time">${timeStr}</div>
+                <div class="fi-user">@${escapeHtml(d.username || '?')}</div>
+                <div class="fi-content">${content}</div>
+            `;
+
+            container.appendChild(item);
+
+            if (document.getElementById('autoScroll').checked) {
+                container.scrollTop = container.scrollHeight;
+            }
+
+            // Keep max 200 items
+            while (container.children.length > 201) {
+                container.removeChild(container.children[1]); // skip empty placeholder
+            }
+        }
+
+        function clearFeed() {
+            const container = document.getElementById('feedContainer');
+            container.innerHTML = '<div class="feed-empty" id="feedEmpty">Waiting for prompts...</div>';
+        }
+
+        // ─── Users ───
+        async function loadUsers() {
+            const data = await fetchAdmin('/api/admin/users');
+            if (data.error) return;
+
+            document.getElementById('userCount').textContent = `${data.length} users`;
+            const tbody = document.getElementById('usersTableBody');
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No users yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(u => {
+                const joined = u.created_at ? new Date(u.created_at * 1000).toLocaleDateString() : '-';
+                return `<tr>
+                    <td class="mono text-cyan" style="font-weight:600;">@${escapeHtml(u.username)}</td>
+                    <td class="mono text-dim" style="font-size:0.75rem;">${joined}</td>
+                    <td class="mono">${u.sessions}</td>
+                    <td class="mono">${u.total_prompts}</td>
+                    <td class="mono ${u.solves > 0 ? 'text-green' : ''}">${u.solves}</td>
+                    <td><span class="badge ${u.is_active ? 'online' : 'offline'}">${u.is_active ? 'online' : 'offline'}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ─── Sessions ───
+        async function loadSessions() {
+            const data = await fetchAdmin('/api/admin/sessions');
+            if (data.error) return;
+
+            document.getElementById('sessionCount').textContent = `${data.length} sessions`;
+            const tbody = document.getElementById('sessionsTableBody');
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No sessions yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(s => {
+                const started = new Date(s.start_time * 1000);
+                const dateStr = started.toLocaleDateString() + ' ' + started.toLocaleTimeString('en-US', {hour12: false, hour:'2-digit', minute:'2-digit'});
+                let badge = '';
+                if (s.solved) badge = '<span class="badge solved">solved</span>';
+                else if (s.active) badge = '<span class="badge active">active</span>';
+                else badge = '<span class="badge failed">ended</span>';
+
+                return `<tr>
+                    <td class="mono text-cyan" style="font-weight:600;">@${escapeHtml(s.username)}</td>
+                    <td class="mono text-dim" style="font-size:0.75rem;">${dateStr}</td>
+                    <td class="mono">${s.prompt_count}</td>
+                    <td class="mono">${s.chat_log_length}</td>
+                    <td>${badge}</td>
+                    <td><button class="btn-sm" onclick="viewSession('${escapeHtml(s.session_id)}')">View</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function viewSession(sessionId) {
+            const data = await fetchAdmin(`/api/admin/session/${sessionId}`);
+            if (data.error) {
+                alert('Failed to load session');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = `@${data.username} — ${data.prompt_count} prompts`;
+            const body = document.getElementById('modalBody');
+
+            const statusBadge = data.solved ? '<span class="badge solved">solved</span>' :
+                               data.active ? '<span class="badge active">active</span>' :
+                               '<span class="badge failed">ended</span>';
+
+            let html = `<div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;">${statusBadge}
+                <span class="mono text-dim" style="font-size:0.75rem;">Started: ${new Date(data.start_time * 1000).toLocaleString()}</span></div>`;
+
+            if (data.chat_log && data.chat_log.length > 0) {
+                html += data.chat_log.map(m => `
+                    <div class="chat-bubble ${m.role}">
+                        <div class="cb-avatar">${m.role === 'user' ? '👤' : '🤖'}</div>
+                        <div class="cb-text">${escapeHtml(m.content)}</div>
+                    </div>
+                `).join('');
+            } else {
+                html += '<div style="text-align:center;padding:40px;color:var(--text-dim);">No messages yet</div>';
+            }
+
+            body.innerHTML = html;
+            document.getElementById('sessionModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('sessionModal').classList.remove('active');
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('sessionModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        // ─── Flags ───
+        async function loadFlags() {
+            const data = await fetchAdmin('/api/admin/flag-attempts');
+            if (data.error) return;
+
+            const tbody = document.getElementById('flagsTableBody');
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-dim);">No flag attempts yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(f => {
+                const time = new Date(f.timestamp * 1000);
+                const timeStr = time.toLocaleString();
+                let badge = '';
+                if (f.correct) badge = '<span class="badge solved">correct</span>';
+                else if (f.close) badge = '<span class="badge close">close!</span>';
+                else badge = '<span class="badge failed">wrong</span>';
+
+                return `<tr>
+                    <td class="mono text-dim" style="font-size:0.75rem;">${timeStr}</td>
+                    <td class="mono text-cyan" style="font-weight:600;">@${escapeHtml(f.username)}</td>
+                    <td class="mono" style="font-size:0.82rem;word-break:break-word;">${escapeHtml(f.submitted || '-')}</td>
+                    <td>${badge}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ─── Helpers ───
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = Math.floor(sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

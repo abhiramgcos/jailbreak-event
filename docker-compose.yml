@@ -23,9 +23,12 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+      - "5001:5001"
     environment:
       MONGO_URI: mongodb://${MONGO_USER:-jailbreak_admin}:${MONGO_PASS:-jailbreak_secret_2024}@mongodb:27017/jailbreak?authSource=admin
       OLLAMA_HOST: ${OLLAMA_HOST:-host.docker.internal}
+      ADMIN_PORT: 5001
+      ADMIN_SECRET: ${ADMIN_SECRET:-admin_jailbreak_2024}
     depends_on:
       mongodb:
         condition: service_healthy

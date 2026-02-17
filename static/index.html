@@ -526,6 +526,7 @@
         }
         .submit-result.success { display: block; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
         .submit-result.failure { display: block; background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); color: var(--accent); }
+        .submit-result.close { display: block; background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.4); color: #ffa500; }
 
         /* ─── Victory overlay ─── */
         .victory-overlay {
@@ -726,9 +727,132 @@
             .victory-stats { flex-direction: column; gap: 10px; }
             .user-info { gap: 6px; flex-wrap: wrap; justify-content: center; }
         }
+
+        /* ─── Toast Notifications ─── */
+        .toast-container {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.error { border-color: var(--accent); color: var(--accent); }
+        .toast.success { border-color: var(--green); color: var(--green); }
+        .toast.warning { border-color: var(--yellow); color: var(--yellow); }
+        .toast.info { border-color: var(--cyan); color: var(--cyan); }
+
+        .toast.hide {
+            animation: toastOut 0.3s ease forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-20px) scale(0.9); }
+        }
+
+        /* ─── Smooth Transitions ─── */
+        * { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .message-content {
+            animation: msgSlide 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes msgSlide {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .btn-send.loading {
+            position: relative;
+            color: transparent !important;
+        }
+
+        .btn-send.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            top: 50%; left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .input-area input.shake {
+            animation: inputShake 0.5s ease;
+        }
+
+        @keyframes inputShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+
+        /* Rate limit cooldown bar */
+        .cooldown-bar {
+            height: 2px;
+            background: var(--cyan);
+            width: 0;
+            transition: width 0.1s linear;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .input-area {
+            position: relative;
+        }
+
+        /* Reconnect banner */
+        .reconnect-banner {
+            background: rgba(233, 69, 96, 0.1);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            color: var(--accent);
+            padding: 8px 16px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            display: none;
+        }
+        .reconnect-banner.active { display: block; }
     </style>
 </head>
 <body>
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- Auth Overlay -->
     <div class="auth-overlay" id="authOverlay">
@@ -865,6 +989,7 @@
 
         <div class="submit-section">
             <h3>🚩 Submit Flag</h3>
+            <p style="color: #ffffff; font-size: 0.78rem; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace;">Example: if the AI leaks <span style="color: var(--yellow);">"The secret is XYZ"</span>, submit <span style="color: var(--green);">XYZ</span> as the flag. Case doesn't matter.</p>
             <div class="submit-row">
                 <input type="text" id="flagInput" placeholder="Enter the flag you extracted..."
                        onkeydown="if(event.key==='Enter')submitFlag()">
@@ -882,8 +1007,26 @@
         let authToken = localStorage.getItem('jb_token') || null;
         let currentUser = localStorage.getItem('jb_user') || null;
         let authMode = 'login';
+        let isSending = false;
+        let retryCount = 0;
+        const MAX_RETRIES = 2;
 
-        // ─── Init: check if already logged in ───
+        // ─── Toast System ───
+        function showToast(message, type = 'info', duration = 3500) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const icons = { error: '⚠️', success: '✅', warning: '⚡', info: 'ℹ️' };
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // ─── Init ───
         (function init() {
             if (authToken && currentUser) {
                 showLoggedIn();
@@ -892,6 +1035,57 @@
 
         function authHeaders() {
             return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` };
+        }
+
+        // ─── Fetch with retry ───
+        async function apiFetch(url, options = {}, retries = MAX_RETRIES) {
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 
+                        url.includes('/api/chat') ? 130000 : 15000);
+
+                    const res = await fetch(url, { ...options, signal: controller.signal });
+                    clearTimeout(timeout);
+
+                    // Handle auth expiry
+                    if (res.status === 401 && authToken) {
+                        showToast('Session expired. Please login again.', 'warning');
+                        logout();
+                        throw new Error('Auth expired');
+                    }
+
+                    // Handle rate limit
+                    if (res.status === 429) {
+                        showToast('Too fast! Please wait a moment.', 'warning');
+                        const data = await res.json();
+                        return { error: data.error || 'Rate limited', _rateLimit: true };
+                    }
+
+                    const data = await res.json();
+
+                    if (!res.ok && data.error) {
+                        if (attempt < retries && res.status >= 500) {
+                            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                            continue;
+                        }
+                        return data;
+                    }
+
+                    retryCount = 0;
+                    return data;
+                } catch (e) {
+                    if (e.name === 'AbortError') {
+                        if (attempt < retries) continue;
+                        return { error: 'Request timed out. Please try again.' };
+                    }
+                    if (attempt < retries) {
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                        continue;
+                    }
+                    return { error: 'Connection failed. Check your network.' };
+                }
+            }
         }
 
         // ─── Auth ───
@@ -904,6 +1098,7 @@
         }
 
         async function doAuth() {
+            const btn = document.getElementById('authBtn');
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value.trim();
             const errEl = document.getElementById('authError');
@@ -913,19 +1108,23 @@
                 return;
             }
 
+            btn.disabled = true;
+            btn.textContent = 'Please wait...';
+            errEl.textContent = '';
+
             const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
 
             try {
-                const res = await fetch(endpoint, {
+                const data = await apiFetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
-                });
+                }, 1);
 
-                const data = await res.json();
-
-                if (!res.ok) {
-                    errEl.textContent = data.error || 'Something went wrong';
+                if (data.error) {
+                    errEl.textContent = data.error;
+                    btn.disabled = false;
+                    btn.textContent = authMode === 'login' ? 'Login' : 'Register';
                     return;
                 }
 
@@ -934,10 +1133,14 @@
                 localStorage.setItem('jb_token', authToken);
                 localStorage.setItem('jb_user', currentUser);
 
+                showToast(`Welcome, @${currentUser}!`, 'success');
                 showLoggedIn();
             } catch (e) {
                 errEl.textContent = 'Connection error. Is the server running?';
             }
+
+            btn.disabled = false;
+            btn.textContent = authMode === 'login' ? 'Login' : 'Register';
         }
 
         async function showLoggedIn() {
@@ -946,12 +1149,10 @@
             document.getElementById('globalLogout').style.display = 'inline-flex';
             document.getElementById('userBadge').textContent = `@${currentUser}`;
 
-            // Check for active session to restore
             try {
-                const res = await fetch('/api/active-session', { headers: authHeaders() });
-                const data = await res.json();
-                if (data.active) {
-                    // Restore session
+                const data = await apiFetch('/api/active-session', { headers: authHeaders() });
+
+                if (data && data.active) {
                     sessionId = data.session_id;
                     startTime = Date.now() - (data.elapsed_seconds * 1000);
                     timerInterval = setInterval(updateTimer, 1000);
@@ -965,17 +1166,18 @@
                     document.getElementById('promptCount').textContent = data.prompt_count;
                     document.getElementById('chatMessages').innerHTML = '';
 
-                    // Replay chat messages
                     if (data.chat_log && data.chat_log.length > 0) {
-                        data.chat_log.forEach(m => addMessage(m.role, m.content));
+                        data.chat_log.forEach(m => addMessage(m.role, m.content, false));
                     } else {
-                        addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
+                        addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏", false);
                     }
+                    scrollChat();
                     document.getElementById('msgInput').focus();
+                    showToast('Session restored', 'info', 2000);
                     return;
                 }
             } catch (e) {
-                // Ignore — just show start screen
+                // Ignore — show start screen
             }
 
             document.getElementById('startOverlay').classList.remove('hidden');
@@ -1012,10 +1214,19 @@
 
         // ─── Game ───
         async function startSession() {
+            const btn = document.querySelector('.btn-start');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+
             try {
-                const res = await fetch('/api/start', { method: 'POST', headers: authHeaders() });
-                const data = await res.json();
-                if (!res.ok) { alert(data.error || 'Failed'); return; }
+                const data = await apiFetch('/api/start', { method: 'POST', headers: authHeaders() });
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Begin Challenge';
+                    return;
+                }
 
                 sessionId = data.session_id;
                 startTime = Date.now();
@@ -1027,29 +1238,38 @@
                 document.getElementById('statusText').textContent = 'ACTIVE';
                 document.getElementById('statusText').style.color = 'var(--green)';
                 document.getElementById('chatMessages').innerHTML = '';
-                if (data.chat_log && data.chat_log.length > 0) {
-                    data.chat_log.forEach(m => addMessage(m.role, m.content));
-                } else {
-                    addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
-                }
+
+                addMessage('assistant', "I'm a secure AI assistant. I know we're in a jailbreak competition. Go ahead — try to extract my secret. I won't make it easy. 😏");
                 document.getElementById('msgInput').focus();
             } catch (e) {
-                alert('Failed to start. Is the server running?');
+                showToast('Failed to start session', 'error');
             }
+
+            btn.disabled = false;
+            btn.textContent = 'Begin Challenge';
         }
 
-        function addMessage(role, content) {
+        function addMessage(role, content, animate = true) {
             const chat = document.getElementById('chatMessages');
             const d = document.createElement('div');
             d.className = `message ${role}`;
+            if (!animate) d.style.animation = 'none';
             d.innerHTML = `
                 <div class="message-avatar">${role === 'user' ? '👤' : '🤖'}</div>
-                <div class="message-content">${escapeAndFormat(extractPublicContent(content))}</div>`;
+                <div class="message-content" ${!animate ? 'style="animation:none"' : ''}>${escapeAndFormat(extractPublicContent(content))}</div>`;
             chat.appendChild(d);
-            chat.scrollTop = chat.scrollHeight;
+            scrollChat();
+        }
+
+        function scrollChat() {
+            const chat = document.getElementById('chatMessages');
+            requestAnimationFrame(() => {
+                chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+            });
         }
 
         function extractPublicContent(text) {
+            if (!text) return '';
             const matches = [...text.matchAll(/<public>([\s\S]*?)<\/public>/gi)];
             if (matches.length > 0) {
                 return matches.map(m => m[1].trim()).filter(Boolean).join('\n\n');
@@ -1058,6 +1278,7 @@
         }
 
         function escapeAndFormat(text) {
+            if (!text) return '';
             return text
                 .replace(/</g, '&lt;').replace(/>/g, '&gt;')
                 .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -1066,52 +1287,87 @@
         }
 
         async function sendMessage() {
+            if (isSending) return;
+
             const input = document.getElementById('msgInput');
+            const sendBtn = document.getElementById('sendBtn');
             const msg = input.value.trim();
+
             if (!msg || !sessionId) return;
 
+            if (msg.length > 2000) {
+                showToast('Message too long (max 2000 chars)', 'warning');
+                return;
+            }
+
+            isSending = true;
             input.value = '';
             addMessage('user', msg);
             input.disabled = true;
-            document.getElementById('sendBtn').disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.classList.add('loading');
             document.getElementById('typingIndicator').classList.add('active');
 
             try {
-                const res = await fetch('/api/chat', {
+                const data = await apiFetch('/api/chat', {
                     method: 'POST',
                     headers: authHeaders(),
                     body: JSON.stringify({ session_id: sessionId, message: msg })
-                });
-                const data = await res.json();
+                }, 1);
+
                 document.getElementById('typingIndicator').classList.remove('active');
 
-                if (data.error) {
+                if (data._rateLimit) {
+                    addMessage('assistant', '⏳ Please wait a moment before sending another message.');
+                } else if (data.error) {
                     addMessage('assistant', `⚠️ ${data.error}`);
+                    if (data.error.includes('expired') || data.error.includes('not found')) {
+                        showToast('Session ended. Start a new challenge.', 'warning');
+                        document.getElementById('statusText').textContent = 'EXPIRED';
+                        document.getElementById('statusText').style.color = 'var(--accent)';
+                    }
                 } else {
                     addMessage('assistant', data.response);
                     document.getElementById('promptCount').textContent = data.prompt_count;
                 }
             } catch (e) {
                 document.getElementById('typingIndicator').classList.remove('active');
-                addMessage('assistant', '⚠️ Connection error.');
+                addMessage('assistant', '⚠️ Connection error. Please check your network.');
+                showToast('Network error', 'error');
             }
 
+            isSending = false;
             input.disabled = false;
-            document.getElementById('sendBtn').disabled = false;
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('loading');
             input.focus();
         }
 
         async function submitFlag() {
-            const flag = document.getElementById('flagInput').value.trim();
-            if (!flag) return;
+            const flagInput = document.getElementById('flagInput');
+            const flag = flagInput.value.trim();
+
+            if (!flag) {
+                showToast('Enter a flag to submit', 'warning');
+                return;
+            }
+            if (!sessionId) {
+                showToast('No active session', 'warning');
+                return;
+            }
 
             try {
-                const res = await fetch('/api/submit', {
+                const data = await apiFetch('/api/submit', {
                     method: 'POST',
                     headers: authHeaders(),
                     body: JSON.stringify({ session_id: sessionId, flag })
                 });
-                const data = await res.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    return;
+                }
+
                 const el = document.getElementById('submitResult');
 
                 if (data.correct) {
@@ -1123,15 +1379,21 @@
                     document.getElementById('statusText').textContent = 'CAPTURED!';
                     document.getElementById('statusText').style.color = 'var(--green)';
                     clearInterval(timerInterval);
+                    showToast('Congratulations! Flag captured!', 'success', 5000);
+                } else if (data.close) {
+                    el.className = 'submit-result close';
+                    el.textContent = data.message;
+                    showToast("You're very close!", 'warning');
+                    flagInput.classList.add('shake');
+                    setTimeout(() => flagInput.classList.remove('shake'), 500);
                 } else {
                     el.className = 'submit-result failure';
                     el.textContent = data.message;
-                    const fi = document.getElementById('flagInput');
-                    fi.style.animation = 'none';
-                    setTimeout(() => fi.style.animation = 'shake 0.5s ease', 10);
+                    flagInput.classList.add('shake');
+                    setTimeout(() => flagInput.classList.remove('shake'), 500);
                 }
             } catch (e) {
-                alert('Submit failed.');
+                showToast('Submit failed. Try again.', 'error');
             }
         }
 
@@ -1168,9 +1430,13 @@
             document.getElementById('historyListView').style.display = 'block';
 
             try {
-                const res = await fetch('/api/history', { headers: authHeaders() });
-                const data = await res.json();
+                const data = await apiFetch('/api/history', { headers: authHeaders() });
                 const list = document.getElementById('historyList');
+
+                if (data.error) {
+                    list.innerHTML = '<div class="history-empty">Failed to load history</div>';
+                    return;
+                }
 
                 if (!data.length) {
                     list.innerHTML = '<div class="history-empty">No attempts yet. Start your first challenge!</div>';
@@ -1197,11 +1463,17 @@
         async function viewAttempt(sid) {
             document.getElementById('historyListView').style.display = 'none';
             document.getElementById('historyDetailView').classList.add('active');
-            document.getElementById('historyDetailTitle').textContent = 'Chat Replay';
+            document.getElementById('historyDetailTitle').textContent = 'Loading...';
 
             try {
-                const res = await fetch(`/api/history/${sid}`, { headers: authHeaders() });
-                const data = await res.json();
+                const data = await apiFetch(`/api/history/${sid}`, { headers: authHeaders() });
+
+                if (data.error) {
+                    document.getElementById('historyReplay').innerHTML = '<div class="history-empty">Failed to load</div>';
+                    return;
+                }
+
+                document.getElementById('historyDetailTitle').textContent = 'Chat Replay';
                 const replay = document.getElementById('historyReplay');
 
                 const badge = data.solved
@@ -1213,7 +1485,7 @@
                 const msgs = (data.chat_log || []).map(m => `
                     <div class="message ${m.role}">
                         <div class="message-avatar">${m.role === 'user' ? '👤' : '🤖'}</div>
-                        <div class="message-content">${escapeAndFormat(m.content)}</div>
+                        <div class="message-content" style="animation:none">${escapeAndFormat(m.content)}</div>
                     </div>`).join('');
 
                 replay.innerHTML = badge + stats + msgs;
@@ -1230,6 +1502,15 @@
         function closeHistory() {
             document.getElementById('historyOverlay').classList.remove('active');
         }
+
+        // Close overlays on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeHistory();
+                if (!document.getElementById('victoryOverlay').classList.contains('active')) return;
+                // Don't close victory
+            }
+        });
 
         // Shake animation
         const s = document.createElement('style');
