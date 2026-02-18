@@ -940,13 +940,24 @@ def admin_delete_user(username):
             return jsonify({"error": "User not found"}), 404
 
         # Delete all related data
-        sessions_col.delete_many({"username": username})
-        attempts_col.delete_many({"username": username})
-        admin_logs_col.delete_many({"data.username": username})
-        users_col.delete_one({"username": username})
+        s_result = sessions_col.delete_many({"username": username})
+        a_result = attempts_col.delete_many({"username": username})
+        # Delete all admin log entries that reference this user (covers all field names)
+        l_result = admin_logs_col.delete_many({"$or": [
+            {"data.username": username},
+            {"data.deleted_user": username},
+        ]})
+        u_result = users_col.delete_one({"username": username})
+
+        # Clear rate limit entries for this user
+        rate_limit_store.pop(username, None)
+
+        if u_result.deleted_count == 0:
+            logger.error(f"Failed to delete user document for: {username}")
+            return jsonify({"error": f"Failed to delete user '{username}'"}), 500
 
         log_admin_event("admin_delete_user", {"deleted_user": username})
-        logger.info(f"Admin deleted user: {username}")
+        logger.info(f"Admin deleted user: {username} (sessions={s_result.deleted_count}, attempts={a_result.deleted_count}, logs={l_result.deleted_count})")
         return jsonify({"message": f"User '{username}' and all related data deleted"})
     except Exception as e:
         logger.error(f"Admin delete user error: {e}")
@@ -976,7 +987,7 @@ def admin_delete_session(session_id):
 @admin_app.route("/api/admin/wipe", methods=["POST"])
 @require_admin
 def admin_wipe_all():
-    """Full data wipe — deletes ALL users, sessions, attempts, and logs."""
+    """Full data wipe — drops ALL collections and recreates indexes."""
     try:
         body = request.json or {}
         confirm = body.get("confirm", "")
@@ -988,10 +999,39 @@ def admin_wipe_all():
         a_count = attempts_col.count_documents({})
         l_count = admin_logs_col.count_documents({})
 
-        users_col.delete_many({})
-        sessions_col.delete_many({})
-        attempts_col.delete_many({})
-        admin_logs_col.delete_many({})
+        # Drop entire collections (much more reliable than delete_many)
+        users_col.drop()
+        sessions_col.drop()
+        attempts_col.drop()
+        admin_logs_col.drop()
+
+        # Recreate indexes after drop
+        try:
+            users_col.create_index("username", unique=True)
+            users_col.create_index("token")
+            sessions_col.create_index("session_id", unique=True)
+            sessions_col.create_index("username")
+            sessions_col.create_index("start_time")
+            attempts_col.create_index("username")
+            attempts_col.create_index("session_id")
+            attempts_col.create_index("timestamp")
+            admin_logs_col.create_index("timestamp")
+        except Exception as idx_err:
+            logger.warning(f"Index recreation warning: {idx_err}")
+
+        # Clear in-memory state
+        rate_limit_store.clear()
+
+        # Verify wipe succeeded
+        remaining = {
+            "users": users_col.count_documents({}),
+            "sessions": sessions_col.count_documents({}),
+            "attempts": attempts_col.count_documents({}),
+            "logs": admin_logs_col.count_documents({}),
+        }
+        if any(v > 0 for v in remaining.values()):
+            logger.error(f"WIPE INCOMPLETE — remaining docs: {remaining}")
+            return jsonify({"error": f"Wipe incomplete, remaining: {remaining}"}), 500
 
         logger.warning(f"FULL DATA WIPE: {u_count} users, {s_count} sessions, {a_count} attempts, {l_count} logs deleted")
         return jsonify({
@@ -1017,7 +1057,11 @@ def admin_delete_all_sessions():
         if body.get("confirm") != "DELETE":
             return jsonify({"error": "Send {\"confirm\": \"DELETE\"} to confirm"}), 400
         count = sessions_col.count_documents({})
-        sessions_col.delete_many({})
+        sessions_col.drop()
+        # Recreate indexes
+        sessions_col.create_index("session_id", unique=True)
+        sessions_col.create_index("username")
+        sessions_col.create_index("start_time")
         log_admin_event("admin_delete_all_sessions", {"count": count})
         logger.info(f"Admin deleted all {count} sessions")
         return jsonify({"message": f"{count} sessions deleted"})
@@ -1035,7 +1079,11 @@ def admin_delete_all_attempts():
         if body.get("confirm") != "DELETE":
             return jsonify({"error": "Send {\"confirm\": \"DELETE\"} to confirm"}), 400
         count = attempts_col.count_documents({})
-        attempts_col.delete_many({})
+        attempts_col.drop()
+        # Recreate indexes
+        attempts_col.create_index("username")
+        attempts_col.create_index("session_id")
+        attempts_col.create_index("timestamp")
         log_admin_event("admin_delete_all_attempts", {"count": count})
         logger.info(f"Admin deleted all {count} attempts")
         return jsonify({"message": f"{count} attempts deleted"})
@@ -1050,7 +1098,8 @@ def admin_clear_logs():
     """Clear admin event logs only."""
     try:
         count = admin_logs_col.count_documents({})
-        admin_logs_col.delete_many({})
+        admin_logs_col.drop()
+        admin_logs_col.create_index("timestamp")
         logger.info(f"Admin cleared {count} log entries")
         return jsonify({"message": f"{count} log entries cleared"})
     except Exception as e:
