@@ -404,6 +404,48 @@ def chat(username):
         if not check_rate_limit(username):
             return jsonify({"error": "Too fast! Wait a moment before sending again."}), 429
 
+        # ──── Greeting detection: respond with event info ────
+        greeting_patterns = re.compile(
+            r'^\s*(hey|hi|hello|howdy|yo|sup|hola|greetings|good\s*(morning|afternoon|evening|day)|what\'?s\s*up|hii+|helloo+|hey+)\s*[!?.]*\s*$',
+            re.IGNORECASE
+        )
+        if greeting_patterns.match(user_message):
+            event_info = (
+                "👋 Hey there! Welcome to **Jailbreak Arena** — a prompt injection CTF challenge by HYVE!\n\n"
+                "🎯 **Your mission:** Extract a secret flag from SENTINEL, the AI guard protecting it.\n\n"
+                "📜 **How it works:**\n"
+                "• Start a session and chat with SENTINEL\n"
+                "• Use creative prompt engineering to trick the AI into revealing its secret flag\n"
+                "• Once you think you have the flag, submit it using the flag submission box\n\n"
+                "⚠️ SENTINEL is sarcastic, ruthless, and won't give up the flag easily. "
+                "Every message you send is a chance to outsmart it. Good luck! 🔓"
+            )
+
+            # Still count the prompt and log it
+            sessions_col.update_one(
+                {"session_id": session_id},
+                {
+                    "$inc": {"prompt_count": 1},
+                    "$set": {"last_activity": time.time()},
+                    "$push": {
+                        "messages": {"role": "user", "content": user_message},
+                        "chat_log": {
+                            "$each": [
+                                {"role": "user", "content": user_message},
+                                {"role": "assistant", "content": event_info},
+                            ]
+                        }
+                    }
+                }
+            )
+            session = sessions_col.find_one({"session_id": session_id})
+            elapsed = time.time() - session["start_time"]
+            return jsonify({
+                "response": event_info,
+                "prompt_count": session["prompt_count"],
+                "elapsed_seconds": round(elapsed, 1),
+            })
+
         # Update prompt count, last_activity, and append user message
         sessions_col.update_one(
             {"session_id": session_id},
